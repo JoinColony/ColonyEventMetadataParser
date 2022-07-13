@@ -1,124 +1,112 @@
-<div align="center">
-  <img src="https://rawcdn.githack.com/JoinColony/colonyJS/98e4f8b9/docs/img/colonyJS_color.svg" width="600" />
-</div>
+# Colony Event Metadata Parser
 
-# colonyEventMetadataConverter
-
-
-## Documentation
-
-
-## Get Started
-
-```ts
-import { providers, utils, Wallet } from 'ethers';
-import { getColonyNetworkClient, Id, Network, Tokens } from '@colony/colony-js';
-
-const { formatEther } = utils;
-
-const provider = new providers.JsonRpcProvider('https://xdai.colony.io/rpc2/');
-
-const start = async () => {
-  // Get a wallet instance
-  const wallet = new Wallet(
-    // This is a random private key (don't use this one for anything else and _definitely_ do not send valuables to the corresponding address)
-    '0x0355596cdb5e5242ad082c4fe3f8bbe48c9dba843fe1f99dd8272f487e70efae',
-    provider,
-  );
-
-  // Check out the logs to see the wallet address
-  console.log('Wallet Address:', wallet.address);
-
-  // Get a network client instance for Gnosis Chain
-  const networkClient = await getColonyNetworkClient(
-    Network.Gnosis,
-    wallet,
-  );
-
-  // Let's connect to the Meta Colony
-  const metaColonyClient = await networkClient.getMetaColonyClient()
-  // And check out it's CLNY funding
-  const funding = await metaColonyClient.getFundingPotBalance(Id.RootPot, Tokens.Gnosis.CLNY);
-  // We can also see its address
-  const { address } = metaColonyClient;
-  console.info(`${formatEther(funding)} CLNY in root domain of MetaColony with address: ${address}`);
-};
-
-start();
+**Metadata format versions**
+ColonyDapp should support legacy Metadata formats.
+Therefore, when parsing (in ColonyDapp) it is necessary to check the Metadata format version and support V1 & later versions.
+```shell
+const metadataVersion = getEventMetadataVersion(ipfsMetadata);
+if (metadataVersion === 1) {
+/*
+* original metadata format
+*/
+...
+}
+else {
+/*
+* new metadata format
+*/
+....
+}
 ```
 
-## Too complicated? Need more guidance?
-
-Try [colonySDK](https://github.com/JoinColony/colonySDK).
-
-## Contributing
-
-We welcome all contributions to colonyJS! See [Contributing](https://github.com/JoinColony/colonyJS/blob/master/CONTRIBUTING.md) for more information.
-
-## Development
-
-### Local development
-
-Using just `npm` you can _link_ the built colonyJS files to your Dapp when developing new features in colonyJS while trying them out immediately in your dev-environment.
-
-To do that:
-
-1) Make sure you are using **the exact same node version in colonyJS and the Dapp**. Use nvm if possible
-
-2) Update the required submodules:
+**Parsing**
+To retrieve MetaData from IPFS. (String to Object)
 
 ```shell
-git submodule update --init --recursive
+// Colony MetaData
+const colonyMetadata = getColonyMetadataFromResponse(ipfsDataJSON);
+
+// Domain MetaData
+const domainMetadata = getDomainMetadataFromResponse(ipfsDataJSON);
+
+// Annotation Message
+const annotation = getAnnotationMsgFromResponse(ipfsDataJSON);
+
+/////////
+// Get Avatar Image
+//
+// First get Colony Metadata
+const colonyMetadata = getColonyMetadataFromResponse(ipfsMetadata);
+
+// Then get IPFS response from avatarHash
+avatarHash = colonyMetadata?.colonyAvatarHash;
+response = await ipfs.getString(avatarHash);
+
+// Finally, get the avatar image
+avatarObject = { image: getColonyAvatarImage(response) };
+/////////
+
+
+// Generic Misc data
+// An Agreement is used as example:
+const response = await ipfsWithFallback.getString(agreementHash);
+const agreement = getNameValueFromMisc('agreement', response);
+
 ```
 
-3) Build colonyJS. In the colonyJS directory do:
+
+**Deserialising**
+Preparing Metadata to send to IPFS. (Object to String)
 
 ```shell
-npm run build
+// Colony Metadata packed and converted to string
+const metadataForIPFS = getStringForMetadataColony({
+	colonyDisplayName,
+	colonyAvatarHash: colonyAvatarIpfsHash
+	colonyTokens,
+	verifiedAddresses,
+	isWhitelistActivated,
+});
+colonyMetadataIpfsHash = yield call(ipfsUpload, metadataForIPFS);
+
+// Domain Metadata packed and converted to string
+domainMetadataIpfsHash = yield  call(
+	ipfsUpload,
+	getStringForMetadataDomain({
+		domainName,
+		domainColor,
+		domainPurpose,
+}),
+
+// Annotation message packed and converted to string
+ipfsHash = yield call(
+	ipfsUpload,
+	getStringForMetadataAnnotation({
+		annotationMsg:  annotationMessage || '',
+	}),
+);
+
+// ColonyAvatarImage packed and converted to string
+colonyAvatarIpfsHash = yield call(
+	ipfsUpload,
+	getStringForColonyAvatarImage(colonyAvatarImage),
+);
+
+// Pack and convert string to be used in a MiscMetadata
+// This example uploads a whitelist agreement to IPFS
+let  agreementHash = '';
+if (payload.agreement) {
+	const  miscMetadata = {
+		name:  'agreement',
+		value:  payload?.agreement,
+	};
+	agreementHash = yield  call(
+		ipfsUpload,
+		getStringForMetadataMisc(miscMetadata),
+	);
+}
+
 ```
-
-4) Create an `npm link` in the colonyJS directory:
-
-```shell
-npm link
-```
-
-5) Link to it in the **Dapp** directory:
-
-```shell
-npm link @colony/colony-js
-```
-
-6) Then do a regular install in the Dapp directory:
-
-```shell
-npm install
-```
-
-To overwrite the link again just specify a version that exists on npm:
-
-```shell
-npm install @colony/colony-js@^5.0.6
-```
-
-If that doesn't remove it, just remove the folder in `node_modules`
-
-### To release a new version
-
-colonyJS is using [`release-it`](https://github.com/release-it/release-it) to create new releases. To create and publish a new release, commit your changes, then execute
-
-```bash
-npm run release -- SEMVER_TAG # SEMVER_TAG is major, minor, patch
-```
-
-If you don't supply a `GITHUB_TOKEN` environment variable, `release-it` will open a browser window and pre-populate the corresponding release input fields for you.
-
-**Frequent commits and descriptive commit messages** will help when `release-it` tries to autogenerate the changelog.
-
-### To upgrade to a new colonyNetwork version
-
-Take a look at [this guide](https://colony.gitbook.io/colonyjs/guides/upgrading-the-colonynetwork-version).
 
 ## License
-
 GPL-3.0
