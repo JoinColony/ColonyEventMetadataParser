@@ -6,7 +6,7 @@ export enum MetadataType {
 }
 
 export interface ColonyMetadata {
-  colonyName?: string;
+  colonyName?: string; // @TODO - check this should be included in the metadata
   colonyDisplayName?: string;
   colonyAvatarHash?: string | null;
   colonyTokens?: Array<string>;
@@ -16,7 +16,7 @@ export interface ColonyMetadata {
 
 export interface DomainMetadata {
   domainName?: string;
-  domainColor?: string;
+  domainColor?: number; // @TODO - check a number [1-16] or string
   domainPurpose?: string;
 }
 
