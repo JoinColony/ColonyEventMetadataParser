@@ -24,7 +24,7 @@ const safeMetadataSchema = yup.object({
 
 const colonyMetadataSchema = yup.object({
   colonyName: yup.string(),
-  colonyDisplayName: yup.string(),
+  colonyDisplayName: yup.string().nullable(),
   colonyAvatarHash: yup.string().nullable(),
   colonyTokens: yup.array().of(yup.string()),
   verifiedAddresses: yup.array().of(yup.string()),
@@ -33,14 +33,14 @@ const colonyMetadataSchema = yup.object({
 });
 
 const domainMetadataSchema = yup.object({
-  domainName: yup.string(),
-  domainColor: yup.number(),
-  domainPurpose: yup.string(),
+  domainName: yup.string().nullable(),
+  domainColor: yup.number().nullable(),
+  domainPurpose: yup.string().nullable(),
 });
 
 const decisionMetadataSchema = yup.object({
   title: yup.string(),
-  description: yup.string(),
+  description: yup.string().nullable(),
   motionDomainId: yup.number(),
 });
 
